@@ -12,8 +12,8 @@ from calculos import (
 )
 
 # Establecer el idioma español para la conversión de fechas
-# locale.setlocale(locale.LC_TIME, 'es_ES.utf8')  # Para Linux y Mac
-locale.setlocale(locale.LC_TIME, 'Spanish_Spain.1252')  # Para Windows
+locale.setlocale(locale.LC_TIME, 'es_ES.utf8')  # Para Linux y Mac
+#locale.setlocale(locale.LC_TIME, 'Spanish_Spain.1252')  # Para Windows
 
 # Función de ETL
 def procesar_csv(uploaded_file):
