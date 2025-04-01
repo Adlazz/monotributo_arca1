@@ -501,64 +501,58 @@ def main():
             with col2:
                 st.plotly_chart(fig_comparacion_tasa)
 
-        # =============================================================================
-        # Sección 12: Gráfico de comparación mensual (Estacionalidad)
-        # =============================================================================
-        st.divider()
-        st.subheader("Comparación Mensual: Año Actual vs Año Anterior")
+            # =============================================================================
+            # Sección 12: Gráfico de comparación mensual (Estacionalidad) - CORREGIDO
+            # =============================================================================
+            st.divider()
+            st.subheader("Comparación Mensual: Año Actual vs Año Anterior")
 
-        # Verificar si hay datos para ambos años
-        if not facturacion_mensual_actual.empty and not facturacion_mensual_anterior.empty:
-            # Agregar columna identificadora de año
-            facturacion_mensual_actual['Año'] = 'Año Actual'
-            facturacion_mensual_anterior['Año'] = 'Año Anterior'
-            
-            # Unir los DataFrames
-            facturacion_comparativa = pd.concat([facturacion_mensual_actual, facturacion_mensual_anterior])
+            # Verificar si hay datos para ambos años
+            if not facturacion_mensual_actual.empty and not facturacion_mensual_anterior.empty:
+                # Extraer año y número de mes de la columna 'Mes'
+                for df in [facturacion_mensual_actual, facturacion_mensual_anterior]:
+                    df['Mes'] = pd.to_datetime(df['Mes'])
+                    df['Año'] = df['Mes'].dt.year
+                    df['Nro Mes'] = df['Mes'].dt.month  # 1=enero, 12=diciembre
 
-            # Asegurar que la columna 'Mes' es de tipo string
-            facturacion_comparativa['Mes'] = facturacion_comparativa['Mes'].astype(str)
+                # Unir los DataFrames
+                facturacion_comparativa = pd.concat([facturacion_mensual_actual, facturacion_mensual_anterior])
 
-            # Convertir 'Mes' de '2024-01' a 'Enero'
-            facturacion_comparativa['Mes'] = pd.to_datetime(facturacion_comparativa['Mes'], format="%Y-%m").dt.strftime("%B")
+                # Ordenar por número de mes
+                facturacion_comparativa.sort_values(['Nro Mes', 'Año'], inplace=True)
 
-            # Ordenar los meses en español correctamente
-            meses_orden = [
-                "enero", "febrero", "marzo", "abril", "mayo", "junio",
-                "julio", "agosto", "septiembre", "octubre", "noviembre", "diciembre"
-            ]
+                # Crear etiquetas de mes-año para el eje X
+                facturacion_comparativa['Mes-Año'] = facturacion_comparativa['Mes'].dt.strftime('%m/%Y')
 
-            facturacion_comparativa['Mes'] = pd.Categorical(
-                facturacion_comparativa['Mes'].str.lower(), 
-                categories=meses_orden, 
-                ordered=True
-            )
+                # Crear gráfico con líneas sobrepuestas
+                fig_comparacion_mensual = px.line(
+                    facturacion_comparativa,
+                    x='Nro Mes',
+                    y='Imp. Total',
+                    color='Año',  # Diferenciar líneas por año
+                    labels={'Imp. Total': 'Facturación Mensual', 'Nro Mes': 'Mes'},
+                    markers=True,
+                    line_shape='linear'
+                )
 
-            # Crear gráfico con líneas sobrepuestas
-            fig_comparacion_mensual = px.line(
-                facturacion_comparativa,
-                x='Mes',
-                y='Imp. Total',
-                color='Año',  # Diferenciar líneas por año
-                labels={'Imp. Total': 'Facturación Mensual', 'Mes': 'Mes'},
-                markers=True,  # Añadir marcadores para cada punto
-                line_shape='linear'  # Líneas rectas entre puntos
-            )
+                # Personalizar el gráfico
+                fig_comparacion_mensual.update_layout(
+                    xaxis=dict(
+                        tickmode='array',
+                        tickvals=list(range(1, 13)),
+                        ticktext=['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 
+                                'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic']
+                    ),
+                    yaxis_title='Facturación Mensual',
+                    legend_title='Año',
+                    template='plotly_white',
+                    hovermode='x unified'
+                )
 
-            # Personalizar el gráfico
-            fig_comparacion_mensual.update_layout(
-                xaxis_title='Mes',
-                yaxis_title='Facturación Mensual',
-                legend_title='Año',
-                template='plotly_white',  # Estilo limpio del gráfico
-                hovermode='x unified'  # Mostrar info de ambas líneas al pasar el mouse
-            )
-
-            # Mostrar el gráfico
-            st.plotly_chart(fig_comparacion_mensual)
-        else:
-            st.warning("No hay suficientes datos para comparar la facturación mensual entre años.")
-
+                # Mostrar el gráfico
+                st.plotly_chart(fig_comparacion_mensual)
+            else:
+                st.warning("No hay suficientes datos para comparar la facturación mensual entre años.")
 
         # =============================================================================
         # Sección 13: Resumen Final
