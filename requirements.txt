@@ -30,7 +30,7 @@ narwhals==1.33.0
 numpy==2.2.4
 packaging==24.2
 pandas==2.2.3
-pillow==11.2.0
+pillow==10.2.0
 plotly==6.0.1
 prometheus_client==0.21.1
 protobuf==5.29.4
