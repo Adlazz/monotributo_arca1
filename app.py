@@ -125,24 +125,25 @@ def main():
 
         1. Ingresa con Clave Fiscal en [ARCA](https://auth.afip.gob.ar/contribuyente_/login.xhtml)
         2. Descarga tu archivo de facturación en formato CSV desde el servicio Mis Comprobantes -> Emitidos
-        3. **Importante**: Descarga el período para anticiparte a la recategorización SEMESTRAL
-           - **Ejemplo Marzo 2026**: descarga desde **01/01/2026** hasta **31/03/2026** (3 meses)
+        3. **Importante**: Descarga el período de **12 meses** para la recategorización
+           - **Ejemplo: Estás en Marzo 2026 (próxima recategorización: Julio 2026)**
+             - Descarga desde **01/07/2025** hasta **31/03/2026** (9 meses cargados)
              - La app calculará: faltan **3 meses** hasta **Julio 2026** (Abril, Mayo, Junio)
-           - **Ejemplo Octubre 2025**: descarga desde **01/07/2025** hasta **31/10/2025** (4 meses)
+             - Podrás facturar los meses restantes sin exceder el límite anual
+           - **Ejemplo: Estás en Octubre 2025 (próxima recategorización: Enero 2026)**
+             - Descarga desde **01/07/2025** hasta **31/10/2025** (4 meses cargados)
              - La app calculará: faltan **2 meses** hasta **Enero 2026** (Noviembre, Diciembre)
         4. Sube el archivo CSV
         5. Ingresa el nombre del contribuyente y la categoría actual
         6. Obtén un análisis detallado del margen disponible hasta la próxima recategorización
 
-        **Nota**: La recategorización en ARCA se realiza **SEMESTRALMENTE** en Enero y Julio.
+        **Nota**: La recategorización en ARCA se realiza **SEMESTRALMENTE** en Enero y Julio, considerando **12 MESES** de facturación.
 
-        **Períodos de recategorización:**
-        - **Recategorización de ENERO**: evalúa período **Jul-Dic** del año anterior
-        - **Recategorización de JULIO**: evalúa período **Ene-Jun** del año actual
+        **Períodos de recategorización (12 meses):**
+        - **Recategorización de ENERO**: evalúa facturación de **Enero (año anterior) - Diciembre (año anterior)** = 12 meses
+        - **Recategorización de JULIO**: evalúa facturación de **Julio (año anterior) - Junio (año actual)** = 12 meses
 
-        **Ejemplos prácticos:**
-        - Si estás en **Marzo 2026**, carga desde **Enero 2026** → próxima recategorización: **Julio 2026**
-        - Si estás en **Octubre 2025**, carga desde **Julio 2025** → próxima recategorización: **Enero 2026**
+        **Clave:** Siempre cargar desde el **inicio del período anual** (Julio o Enero) hasta la fecha actual.
         """)
 
     # =============================================================================
@@ -166,7 +167,7 @@ def main():
         categoria_actual = st.selectbox("Selecciona tu categoría actual", options=list(categorias.keys()))
 
     with col3:
-        uploaded_file = st.file_uploader("Sube tu archivo CSV del período del semestre", type="csv")
+        uploaded_file = st.file_uploader("Sube tu archivo CSV del período anual (desde Julio o Enero)", type="csv")
 
     # Procesamos el CSV con período móvil de recategorización
     df_completo, facturacion_mensual_completa, facturacion_historica, facturacion_actual, fecha_inicio_periodo, fecha_fin_periodo, fecha_recategorizacion, meses_faltantes = procesar_csv(uploaded_file)
