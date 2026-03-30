@@ -33,21 +33,23 @@ except locale.Error:
 def obtener_proxima_recategorizacion(fecha_actual):
     """
     Determina la próxima fecha de recategorización según el mes actual.
-    Recategorización en: Enero, Mayo, Septiembre
+    Recategorización SEMESTRAL en ARCA:
+    - ENERO: evalúa período Jul-Dic del año anterior
+    - JULIO: evalúa período Ene-Jun del año actual
+
+    Por lo tanto:
+    - Si estamos en Jul-Dic: próxima recategorización = Enero del año siguiente
+    - Si estamos en Ene-Jun: próxima recategorización = Julio del año actual
     """
     mes_actual = fecha_actual.month
     año_actual = fecha_actual.year
 
-    # Meses de recategorización
-    meses_recategorizacion = [1, 5, 9]  # Enero, Mayo, Septiembre
-
-    # Encontrar el próximo mes de recategorización
-    for mes in meses_recategorizacion:
-        if mes > mes_actual:
-            return datetime(año_actual, mes, 1).date()
-
-    # Si no hay ninguno en el año actual, será enero del próximo año
-    return datetime(año_actual + 1, 1, 1).date()
+    if mes_actual >= 7:  # Julio a Diciembre
+        # Próxima recategorización: Enero del próximo año
+        return datetime(año_actual + 1, 1, 1).date()
+    else:  # Enero a Junio
+        # Próxima recategorización: Julio del año actual
+        return datetime(año_actual, 7, 1).date()
 
 # Función de ETL mejorada para período móvil de recategorización
 def procesar_csv(uploaded_file):
@@ -121,20 +123,24 @@ def main():
 
         1. Ingresa con Clave Fiscal en [ARCA](https://auth.afip.gob.ar/contribuyente_/login.xhtml)
         2. Descarga tu archivo de facturación en formato CSV desde el servicio Mis Comprobantes -> Emitidos
-        3. **Importante**: Descarga el período para anticiparte a la recategorización
-           - **Ejemplo Marzo 2026**: descarga desde **01/07/2025** hasta **31/03/2026** (9 meses)
-           - **Ejemplo Mayo 2026**: descarga desde **01/07/2025** hasta **30/05/2026** (11 meses)
-           - La app calculará automáticamente cuántos meses faltan hasta Junio 2026
+        3. **Importante**: Descarga el período para anticiparte a la recategorización SEMESTRAL
+           - **Ejemplo Marzo 2026**: descarga desde **01/01/2026** hasta **31/03/2026** (3 meses)
+             - La app calculará: faltan **3 meses** hasta **Julio 2026** (Abril, Mayo, Junio)
+           - **Ejemplo Octubre 2025**: descarga desde **01/07/2025** hasta **31/10/2025** (4 meses)
+             - La app calculará: faltan **2 meses** hasta **Enero 2026** (Noviembre, Diciembre)
         4. Sube el archivo CSV
         5. Ingresa el nombre del contribuyente y la categoría actual
-        6. Obtén un análisis detallado del margen disponible hasta la próxima recategorización en **Junio 2026**
+        6. Obtén un análisis detallado del margen disponible hasta la próxima recategorización
 
-        **Nota**: La recategorización en ARCA se realiza cada 4 meses (Enero, Mayo y Septiembre) considerando los últimos 12 meses de facturación.
+        **Nota**: La recategorización en ARCA se realiza **SEMESTRALMENTE** en Enero y Julio.
 
         **Períodos de recategorización:**
-        - **Enero**: evalúa Feb - Ene (año anterior)
-        - **Mayo**: evalúa Jun - May
-        - **Septiembre**: evalúa Oct - Sep
+        - **Recategorización de ENERO**: evalúa período **Jul-Dic** del año anterior
+        - **Recategorización de JULIO**: evalúa período **Ene-Jun** del año actual
+
+        **Ejemplos prácticos:**
+        - Si estás en **Marzo 2026**, carga desde **Enero 2026** → próxima recategorización: **Julio 2026**
+        - Si estás en **Octubre 2025**, carga desde **Julio 2025** → próxima recategorización: **Enero 2026**
         """)
 
     # =============================================================================
@@ -158,7 +164,7 @@ def main():
         categoria_actual = st.selectbox("Selecciona tu categoría actual", options=list(categorias.keys()))
 
     with col3:
-        uploaded_file = st.file_uploader("Sube tu archivo CSV con 12 meses móviles", type="csv")
+        uploaded_file = st.file_uploader("Sube tu archivo CSV del período del semestre", type="csv")
 
     # Procesamos el CSV con período móvil de recategorización
     df_completo, facturacion_mensual_completa, facturacion_historica, facturacion_actual, fecha_inicio_periodo, fecha_fin_periodo, fecha_recategorizacion, meses_faltantes = procesar_csv(uploaded_file)
