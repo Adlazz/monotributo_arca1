@@ -412,10 +412,11 @@ def main():
             st.plotly_chart(fig_acumulado, use_container_width=True)
 
         # =============================================================================
-        # Sección 8: Gráfico de Facturación Mensual (12 meses)
+        # Sección 8: Gráfico de Facturación Mensual
         # =============================================================================
 
         st.markdown("---")
+        st.subheader("📊 Facturación Mensual del Período")
 
         with st.container(border=True):
             col1, col2 = st.columns([3, 1])
@@ -423,12 +424,15 @@ def main():
             with col1:
                 # Gráfico de facturación mensual del período completo
                 if not facturacion_mensual_completa.empty:
+                    # Formato del período para el título
+                    periodo_titulo = f"{fecha_inicio_periodo.strftime('%b %Y')} - {fecha_fin_periodo.strftime('%b %Y')}"
+
                     # Crear el gráfico usando Mes_Str para el eje X
                     fig_mensual = px.bar(
                         facturacion_mensual_completa,
                         x='Mes_Str',
                         y='Imp. Total',
-                        title=f'Facturación Mensual - {contribuyente} ({periodo})',
+                        title=f'Facturación Mensual - {contribuyente} ({periodo_titulo})',
                         labels={'Imp. Total': 'Facturación Mensual (ARS)', 'Mes_Str': 'Mes'},
                         color='Imp. Total',
                         color_continuous_scale='Blues'
@@ -436,7 +440,8 @@ def main():
 
                     fig_mensual.update_layout(
                         xaxis_tickangle=-45,
-                        showlegend=False
+                        showlegend=False,
+                        height=400
                     )
 
                     st.plotly_chart(fig_mensual, use_container_width=True)
@@ -446,7 +451,8 @@ def main():
                 # Mostrar solo las columnas relevantes
                 st.dataframe(
                     facturacion_mensual_completa[['Mes_Str', 'Imp. Total']].rename(columns={'Mes_Str': 'Mes'}).style.format({'Imp. Total': '${:,.2f}'}),
-                    hide_index=True
+                    hide_index=True,
+                    height=350
                 )
             
 
@@ -599,6 +605,93 @@ def main():
 
         # Mostramos la tabla de resumen
         st.table(df_resumen)
+
+        # =============================================================================
+        # Sección 13: Gráfico de Barras - Facturación por Mes con Proyección
+        # =============================================================================
+        st.markdown("---")
+        st.subheader("📊 Análisis Visual: Facturación Mensual y Proyección")
+
+        with st.container(border=True):
+            # Crear DataFrame para el gráfico
+            df_grafico = facturacion_mensual_completa[['Mes_Str', 'Imp. Total']].copy()
+            df_grafico['Tipo'] = 'Facturación Real'
+
+            # Si hay margen disponible y meses restantes, mostrar proyección
+            if meses_restantes > 0 and promedio_mensual_disponible > 0:
+                # Agregar meses proyectados
+                import calendar
+
+                meses_proyectados = []
+                fecha_temp = fecha_fin_periodo
+
+                for i in range(meses_restantes):
+                    # Avanzar al siguiente mes
+                    if fecha_temp.month == 12:
+                        fecha_temp = datetime(fecha_temp.year + 1, 1, 1).date()
+                    else:
+                        fecha_temp = datetime(fecha_temp.year, fecha_temp.month + 1, 1).date()
+
+                    mes_str = fecha_temp.strftime('%Y-%m')
+                    meses_proyectados.append({
+                        'Mes_Str': mes_str,
+                        'Imp. Total': promedio_mensual_disponible,
+                        'Tipo': 'Proyección (Promedio Disponible)'
+                    })
+
+                df_proyeccion = pd.DataFrame(meses_proyectados)
+                df_grafico = pd.concat([df_grafico, df_proyeccion], ignore_index=True)
+
+            # Crear gráfico de barras
+            fig_barras = px.bar(
+                df_grafico,
+                x='Mes_Str',
+                y='Imp. Total',
+                color='Tipo',
+                title=f'Facturación Mensual y Proyección hasta {fecha_recategorizacion.strftime("%B %Y")}',
+                labels={'Imp. Total': 'Monto (ARS)', 'Mes_Str': 'Mes'},
+                color_discrete_map={
+                    'Facturación Real': '#1f77b4',
+                    'Proyección (Promedio Disponible)': '#ff7f0e'
+                },
+                barmode='group'
+            )
+
+            # Agregar línea horizontal del límite promedio
+            if meses_restantes > 0:
+                fig_barras.add_hline(
+                    y=promedio_mensual_disponible,
+                    line_dash="dash",
+                    line_color="red",
+                    annotation_text=f"Promedio Mensual Disponible: ${promedio_mensual_disponible:,.0f}",
+                    annotation_position="right"
+                )
+
+            fig_barras.update_layout(
+                xaxis_tickangle=-45,
+                height=500,
+                showlegend=True,
+                legend=dict(
+                    orientation="h",
+                    yanchor="bottom",
+                    y=1.02,
+                    xanchor="right",
+                    x=1
+                )
+            )
+
+            st.plotly_chart(fig_barras, use_container_width=True)
+
+            # Explicación
+            if meses_restantes > 0:
+                st.info(f"""
+                📊 **Interpretación del gráfico:**
+                - **Barras azules**: Facturación real de los meses cargados ({meses_cargados} meses)
+                - **Barras naranjas**: Proyección del promedio mensual disponible para los próximos {meses_restantes} meses
+                - **Línea roja punteada**: Límite promedio que puedes facturar por mes sin exceder tu categoría
+
+                💡 Si las barras naranjas están por debajo o al nivel de la línea roja, estás dentro del margen seguro.
+                """)
 
     else:
         st.warning("Por favor, sube el archivo CSV con 12 meses de facturación para ver el análisis.")
