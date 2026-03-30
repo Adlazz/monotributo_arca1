@@ -29,6 +29,26 @@ except locale.Error:
         # Use system default if specified locales are unavailable
         locale.setlocale(locale.LC_TIME, '')
 
+# Función para determinar la fecha de próxima recategorización
+def obtener_proxima_recategorizacion(fecha_actual):
+    """
+    Determina la próxima fecha de recategorización según el mes actual.
+    Recategorización en: Enero, Mayo, Septiembre
+    """
+    mes_actual = fecha_actual.month
+    año_actual = fecha_actual.year
+
+    # Meses de recategorización
+    meses_recategorizacion = [1, 5, 9]  # Enero, Mayo, Septiembre
+
+    # Encontrar el próximo mes de recategorización
+    for mes in meses_recategorizacion:
+        if mes > mes_actual:
+            return datetime(año_actual, mes, 1).date()
+
+    # Si no hay ninguno en el año actual, será enero del próximo año
+    return datetime(año_actual + 1, 1, 1).date()
+
 # Función de ETL mejorada para período móvil de recategorización
 def procesar_csv(uploaded_file):
     if uploaded_file is not None:
@@ -45,30 +65,38 @@ def procesar_csv(uploaded_file):
 
         # Facturación mensual agrupada
         facturacion_mensual = df.groupby('Mes')['Imp. Total'].sum().reset_index()
+        facturacion_mensual['Mes_Period'] = facturacion_mensual['Mes']  # Guardar Period
         facturacion_mensual['Mes'] = facturacion_mensual['Mes'].dt.to_timestamp()
-        facturacion_mensual['Mes'] = facturacion_mensual['Mes'].dt.strftime('%Y-%m')
+        facturacion_mensual['Mes_Str'] = facturacion_mensual['Mes'].dt.strftime('%Y-%m')
         facturacion_mensual['Acumulado'] = facturacion_mensual['Imp. Total'].cumsum()
 
-        # Separar en período histórico (primeros 6 meses) y período actual (últimos 6 meses)
+        # Determinar fecha de última factura cargada
+        fecha_max = df['Fecha de Emisión'].max()
+        fecha_min = df['Fecha de Emisión'].min()
+
+        # Calcular próxima recategorización
+        proxima_recategorizacion = obtener_proxima_recategorizacion(fecha_max)
+
+        # Calcular meses entre fecha_max y proxima_recategorizacion
+        meses_restantes = (proxima_recategorizacion.year - fecha_max.year) * 12 + \
+                         (proxima_recategorizacion.month - fecha_max.month)
+
+        # Para el análisis, separar en histórico y actual (opcional)
         num_meses = len(facturacion_mensual)
-        if num_meses >= 12:
-            # Si hay 12 o más meses, separar en mitades
+        if num_meses >= 6:
+            # Si hay 6 o más meses, separar en histórico (primeros) y actual (últimos)
             mitad = num_meses // 2
             facturacion_historica = facturacion_mensual.iloc[:mitad].copy()
             facturacion_actual = facturacion_mensual.iloc[mitad:].copy()
-
-            # Recalcular acumulados para cada período
-            facturacion_historica['Acumulado'] = facturacion_historica['Imp. Total'].cumsum()
-            facturacion_actual['Acumulado'] = facturacion_actual['Imp. Total'].cumsum()
         else:
-            # Si hay menos de 12 meses, usar todo como período actual
+            # Si hay menos de 6 meses, todo es período actual
             facturacion_historica = pd.DataFrame()
             facturacion_actual = facturacion_mensual.copy()
 
-        return df, facturacion_mensual, facturacion_historica, facturacion_actual
+        return df, facturacion_mensual, facturacion_historica, facturacion_actual, fecha_min, fecha_max, proxima_recategorizacion, meses_restantes
     else:
         # Devuelve DataFrames vacíos si no se subió ningún archivo
-        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame()
+        return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), None, None, None, 0
 
 def calcular_kpis(facturacion_mensual):
     facturacion_total = calcular_facturacion_total(facturacion_mensual)
@@ -93,14 +121,20 @@ def main():
 
         1. Ingresa con Clave Fiscal en [ARCA](https://auth.afip.gob.ar/contribuyente_/login.xhtml)
         2. Descarga tu archivo de facturación en formato CSV desde el servicio Mis Comprobantes -> Emitidos
-        3. **Importante**: Selecciona el período de **12 meses móviles** para recategorización
-           - Para analizar **Enero-Junio 2026**: descarga desde **01/07/2025** hasta **30/06/2026**
-           - Para analizar **Julio-Diciembre 2026**: descarga desde **01/01/2026** hasta **31/12/2026**
-        4. Sube el archivo CSV con los 12 meses
+        3. **Importante**: Descarga el período para anticiparte a la recategorización
+           - **Ejemplo Marzo 2026**: descarga desde **01/07/2025** hasta **31/03/2026** (9 meses)
+           - **Ejemplo Mayo 2026**: descarga desde **01/07/2025** hasta **30/05/2026** (11 meses)
+           - La app calculará automáticamente cuántos meses faltan hasta Junio 2026
+        4. Sube el archivo CSV
         5. Ingresa el nombre del contribuyente y la categoría actual
-        6. Obtén un análisis detallado del margen disponible hasta la próxima recategorización
+        6. Obtén un análisis detallado del margen disponible hasta la próxima recategorización en **Junio 2026**
 
         **Nota**: La recategorización en ARCA se realiza cada 4 meses (Enero, Mayo y Septiembre) considerando los últimos 12 meses de facturación.
+
+        **Períodos de recategorización:**
+        - **Enero**: evalúa Feb - Ene (año anterior)
+        - **Mayo**: evalúa Jun - May
+        - **Septiembre**: evalúa Oct - Sep
         """)
 
     # =============================================================================
@@ -126,8 +160,8 @@ def main():
     with col3:
         uploaded_file = st.file_uploader("Sube tu archivo CSV con 12 meses móviles", type="csv")
 
-    # Procesamos el CSV con período móvil de 12 meses
-    df_completo, facturacion_mensual_completa, facturacion_historica, facturacion_actual = procesar_csv(uploaded_file)
+    # Procesamos el CSV con período móvil de recategorización
+    df_completo, facturacion_mensual_completa, facturacion_historica, facturacion_actual, fecha_inicio_periodo, fecha_fin_periodo, fecha_recategorizacion, meses_faltantes = procesar_csv(uploaded_file)
 
     # Verificamos si el archivo CSV ha sido cargado
     if uploaded_file is not None:
@@ -153,7 +187,7 @@ def main():
         else:
             facturacion_periodo_historico = 0
 
-        # Cálculos del período actual (últimos 6 meses o meses restantes)
+        # Cálculos del período actual (últimos meses cargados)
         if not facturacion_actual.empty:
             facturacion_periodo_actual = calcular_facturacion_total(facturacion_actual)
             facturacion_promedio_mensual_actual = calcular_facturacion_promedio_mensual(facturacion_actual)
@@ -163,8 +197,11 @@ def main():
             facturacion_promedio_mensual_actual = 0
             meses_transcurridos = 0
 
-        # Determinar meses restantes hasta la recategorización (asumiendo 6 meses por semestre)
-        meses_restantes = max(0, 6 - meses_transcurridos)
+        # Total de meses cargados
+        meses_cargados = len(facturacion_mensual_completa) if not facturacion_mensual_completa.empty else 0
+
+        # Usar los meses restantes calculados por la función (hasta próxima recategorización)
+        meses_restantes = max(0, meses_faltantes)
 
         # Calcular margen disponible y exceso
         margen_disponible = calcular_margen_disponible(facturacion_acumulada_total, limite_categoria_actual)
@@ -184,29 +221,35 @@ def main():
 
 
         # =============================================================================
-        # Sección 5: Métricas de Recategorización (12 meses móviles)
+        # Sección 5: Métricas de Recategorización (Período Móvil)
         # =============================================================================
 
         st.subheader("📊 Análisis de Período de Recategorización")
-        st.caption(f"Período completo de 12 meses | Categoría Actual: **{categoria_actual}** | Límite: ${limite_categoria_actual:,.2f}")
+
+        # Mostrar información del período y próxima recategorización
+        if fecha_recategorizacion:
+            nombre_mes_recateorizacion = fecha_recategorizacion.strftime('%B %Y')
+            st.caption(f"**Período cargado**: {fecha_inicio_periodo.strftime('%d/%m/%Y')} - {fecha_fin_periodo.strftime('%d/%m/%Y')} ({meses_cargados} meses) | **Próxima recategorización**: {nombre_mes_recateorizacion} | **Categoría Actual**: {categoria_actual} | **Límite**: ${limite_categoria_actual:,.2f}")
+        else:
+            st.caption(f"Categoría Actual: **{categoria_actual}** | Límite: ${limite_categoria_actual:,.2f}")
 
         col1, col2, col3, col4 = st.columns(4)
 
-        # Tarjeta 1: Facturación Total 12 Meses
+        # Tarjeta 1: Facturación Total Cargada
         with col1:
             ui.metric_card(
-                title="Facturación Total (12 meses)",
+                title=f"Facturación Total ({meses_cargados} meses)",
                 content=f"${facturacion_total_12_meses:,.2f}",
-                description=f"Acumulado total del período de recategorización",
+                description=f"Acumulado desde {fecha_inicio_periodo.strftime('%b %Y')} hasta {fecha_fin_periodo.strftime('%b %Y')}",
                 key="card1"
             )
 
-        # Tarjeta 2: Facturación Período Actual
+        # Tarjeta 2: Meses Restantes hasta Recategorización
         with col2:
             ui.metric_card(
-                title=f"Facturación Período Actual ({meses_transcurridos} meses)",
-                content=f"${facturacion_periodo_actual:,.2f}",
-                description=f"Últimos {meses_transcurridos} meses del período",
+                title=f"Meses Restantes",
+                content=f"{meses_restantes}",
+                description=f"Hasta {fecha_recategorizacion.strftime('%B %Y')} (recategorización)",
                 key="card2"
             )
 
@@ -226,16 +269,24 @@ def main():
                 ui.metric_card(
                     title="⚠️ Exceso de Facturación",
                     content=f"${exceso_facturacion:,.2f}",
-                    description=f"Reducción mensual necesaria: ${reduccion_mensual_necesaria:,.2f}",
+                    description=f"Debe reducir ${reduccion_mensual_necesaria:,.2f}/mes" if meses_restantes > 0 else "Ya excedió el límite",
                     key="card4"
                 )
             else:
-                ui.metric_card(
-                    title="Promedio Mensual Disponible",
-                    content=f"${promedio_mensual_disponible:,.2f}",
-                    description=f"Puede facturar en promedio por {meses_restantes} meses restantes",
-                    key="card4"
-                )
+                if meses_restantes > 0:
+                    ui.metric_card(
+                        title="Promedio Mensual Disponible",
+                        content=f"${promedio_mensual_disponible:,.2f}",
+                        description=f"Puede facturar en promedio los próximos {meses_restantes} meses",
+                        key="card4"
+                    )
+                else:
+                    ui.metric_card(
+                        title="✅ Período Completo",
+                        content=f"${margen_disponible:,.2f}",
+                        description="Margen disponible hasta recategorización",
+                        key="card4"
+                    )
 
         # =============================================================================
         # Sección 6: Alertas Inteligentes de Recategorización
@@ -251,11 +302,14 @@ def main():
             - **Exceso**: ${exceso_facturacion:,.2f}
             - **Categoría actual**: {categoria_actual} (límite: ${limite_categoria_actual:,.2f})
             - **Nueva categoría de encuadre**: {categoria_encuadre if categoria_encuadre else 'Excede todas las categorías'}
-            - **Reducción mensual necesaria**: ${reduccion_mensual_necesaria:,.2f} para los próximos {meses_restantes} meses
+            - **Facturación acumulada**: ${facturacion_acumulada_total:,.2f}
+            - **Meses restantes hasta {fecha_recategorizacion.strftime('%B %Y')}**: {meses_restantes}
             """)
 
-            if categoria_encuadre:
-                st.info(f"💡 **Recomendación**: Para mantenerse en categoría **{categoria_actual}**, debe reducir su facturación promedio mensual a **${reduccion_mensual_necesaria:,.2f}** o menos durante los próximos {meses_restantes} meses.")
+            if meses_restantes > 0 and categoria_encuadre:
+                st.info(f"💡 **Recomendación**: Para mantenerse en categoría **{categoria_actual}**, debe reducir su facturación promedio a **${reduccion_mensual_necesaria:,.2f}/mes** o menos durante los próximos {meses_restantes} meses. De lo contrario, quedará encuadrado en categoría **{categoria_encuadre}** en {fecha_recategorizacion.strftime('%B %Y')}.")
+            elif meses_restantes == 0:
+                st.warning(f"⚠️ El período de recategorización está completo. En {fecha_recategorizacion.strftime('%B %Y')} quedará encuadrado en categoría **{categoria_encuadre}**.")
         else:
             # Alerta de proximidad al límite (si está al 80% o más)
             porcentaje_utilizado = (facturacion_acumulada_total / limite_categoria_actual) * 100
@@ -266,7 +320,10 @@ def main():
 
                 - Ha utilizado el **{porcentaje_utilizado:.1f}%** del límite de categoría **{categoria_actual}**
                 - **Margen disponible**: ${margen_disponible:,.2f}
-                - **Promedio mensual disponible**: ${promedio_mensual_disponible:,.2f} para los próximos {meses_restantes} meses
+                - **Meses restantes hasta {fecha_recategorizacion.strftime('%B %Y')}**: {meses_restantes}
+                - **Promedio mensual disponible**: ${promedio_mensual_disponible:,.2f}
+
+                💡 **Recomendación**: Monitoree su facturación mensual para no exceder el promedio disponible.
                 """)
             else:
                 st.success(f"""
@@ -274,7 +331,10 @@ def main():
 
                 - Utilizado: **{porcentaje_utilizado:.1f}%** del límite de categoría **{categoria_actual}**
                 - **Margen disponible**: ${margen_disponible:,.2f}
-                - **Promedio mensual disponible**: ${promedio_mensual_disponible:,.2f} para los próximos {meses_restantes} meses
+                - **Meses restantes hasta {fecha_recategorizacion.strftime('%B %Y')}**: {meses_restantes}
+                - **Promedio mensual disponible**: ${promedio_mensual_disponible:,.2f}
+
+                ✅ Puede continuar facturando dentro de su categoría actual.
                 """)
 
         # Análisis de categoría siguiente
@@ -354,17 +414,13 @@ def main():
             with col1:
                 # Gráfico de facturación mensual del período completo
                 if not facturacion_mensual_completa.empty:
-                    # Calcular período
-                    fecha_inicio = facturacion_mensual_completa['Mes'].min()
-                    fecha_fin = facturacion_mensual_completa['Mes'].max()
-
-                    # Crear el gráfico
+                    # Crear el gráfico usando Mes_Str para el eje X
                     fig_mensual = px.bar(
                         facturacion_mensual_completa,
-                        x='Mes',
+                        x='Mes_Str',
                         y='Imp. Total',
-                        title=f'Facturación Mensual - {contribuyente} ({fecha_inicio} a {fecha_fin})',
-                        labels={'Imp. Total': 'Facturación Mensual (ARS)', 'Mes': 'Mes'},
+                        title=f'Facturación Mensual - {contribuyente} ({periodo})',
+                        labels={'Imp. Total': 'Facturación Mensual (ARS)', 'Mes_Str': 'Mes'},
                         color='Imp. Total',
                         color_continuous_scale='Blues'
                     )
@@ -380,7 +436,7 @@ def main():
                 st.write("**Facturación mensual:**")
                 # Mostrar solo las columnas relevantes
                 st.dataframe(
-                    facturacion_mensual_completa[['Mes', 'Imp. Total']].style.format({'Imp. Total': '${:,.2f}'}),
+                    facturacion_mensual_completa[['Mes_Str', 'Imp. Total']].rename(columns={'Mes_Str': 'Mes'}).style.format({'Imp. Total': '${:,.2f}'}),
                     hide_index=True
                 )
             
@@ -500,37 +556,35 @@ def main():
         st.markdown("---")
         st.subheader("📋 Resumen del Período de Recategorización")
 
-        # Calculamos el período
-        if not facturacion_mensual_completa.empty:
-            fecha_inicio = facturacion_mensual_completa['Mes'].min()
-            fecha_fin = facturacion_mensual_completa['Mes'].max()
-            periodo = f"{fecha_inicio} a {fecha_fin}"
-        else:
-            periodo = "Sin datos"
+        # Creamos un DataFrame para el resumen con información dinámica
+        periodo = f"{fecha_inicio_periodo.strftime('%d/%m/%Y')} - {fecha_fin_periodo.strftime('%d/%m/%Y')}"
 
-        # Creamos un DataFrame para el resumen
         df_resumen = pd.DataFrame({
             'Métrica': [
                 "Período Analizado",
+                "Meses Cargados",
+                "Próxima Recategorización",
+                "Meses Restantes",
                 "Categoría Actual",
                 "Límite de Categoría",
-                "Facturación Total (12 meses)",
-                "Facturación Período Histórico",
-                "Facturación Período Actual",
+                "Facturación Total Acumulada",
                 "Facturación Máxima Mensual",
                 "Margen Disponible",
+                "Promedio Mensual Disponible",
                 "Exceso de Facturación"
             ],
             'Valor': [
                 periodo,
+                f"{meses_cargados} meses",
+                fecha_recategorizacion.strftime('%B %Y'),
+                f"{meses_restantes} meses",
                 categoria_actual,
                 f"${limite_categoria_actual:,.2f}",
                 f"${facturacion_total_12_meses:,.2f}",
-                f"${facturacion_periodo_historico:,.2f}",
-                f"${facturacion_periodo_actual:,.2f}",
                 f"${facturacion_mensual_completa['Imp. Total'].max():,.2f}" if not facturacion_mensual_completa.empty else "$0.00",
                 f"${margen_disponible:,.2f}",
-                f"${exceso_facturacion:,.2f}"
+                f"${promedio_mensual_disponible:,.2f}" if meses_restantes > 0 else "N/A",
+                f"${exceso_facturacion:,.2f}" if exceso_facturacion > 0 else "$0.00"
             ]
         })
 
