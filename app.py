@@ -80,8 +80,10 @@ def procesar_csv(uploaded_file):
         proxima_recategorizacion = obtener_proxima_recategorizacion(fecha_max)
 
         # Calcular meses entre fecha_max y proxima_recategorizacion
+        # Restamos 1 porque no contamos el mes actual completo
         meses_restantes = (proxima_recategorizacion.year - fecha_max.year) * 12 + \
-                         (proxima_recategorizacion.month - fecha_max.month)
+                         (proxima_recategorizacion.month - fecha_max.month) - 1
+        meses_restantes = max(0, meses_restantes)  # No puede ser negativo
 
         # Para el análisis, separar en histórico y actual (opcional)
         num_meses = len(facturacion_mensual)
