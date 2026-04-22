@@ -3,3 +3,5 @@ venv/
 *.csv
 
 __pycache__
+
+.claude/
