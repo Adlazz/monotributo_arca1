@@ -707,7 +707,7 @@ def main():
         with col2:
             if st.button("📥 Descargar PDF", type="primary", use_container_width=True):
                 # Generar PDF
-                from fpdf import FPDF
+                from fpdf import FPDF, XPos, YPos
                 from datetime import datetime as dt
 
                 # Crear PDF
@@ -716,56 +716,56 @@ def main():
                 pdf.set_auto_page_break(auto=True, margin=15)
 
                 # Título
-                pdf.set_font('Arial', 'B', 20)
-                pdf.cell(0, 10, 'Reporte de Analisis de Monotributo', ln=True, align='C')
+                pdf.set_font('Helvetica', 'B', 20)
+                pdf.cell(0, 10, 'Reporte de Analisis de Monotributo', new_x=XPos.LMARGIN, new_y=YPos.NEXT, align='C')
                 pdf.ln(5)
 
                 # Información del contribuyente
-                pdf.set_font('Arial', 'B', 14)
-                pdf.cell(0, 10, f'Contribuyente: {contribuyente}', ln=True)
-                pdf.set_font('Arial', '', 12)
-                pdf.cell(0, 8, f'Categoria Actual: {categoria_actual}', ln=True)
-                pdf.cell(0, 8, f'Fecha de generacion: {dt.now().strftime("%d/%m/%Y %H:%M")}', ln=True)
+                pdf.set_font('Helvetica', 'B', 14)
+                pdf.cell(0, 10, f'Contribuyente: {contribuyente}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.set_font('Helvetica', '', 12)
+                pdf.cell(0, 8, f'Categoria Actual: {categoria_actual}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.cell(0, 8, f'Fecha de generacion: {dt.now().strftime("%d/%m/%Y %H:%M")}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                 pdf.ln(5)
 
                 # Período analizado
-                pdf.set_font('Arial', 'B', 14)
-                pdf.cell(0, 10, 'Periodo Analizado', ln=True)
-                pdf.set_font('Arial', '', 11)
-                pdf.cell(0, 7, f'Desde: {fecha_inicio_periodo.strftime("%d/%m/%Y")}', ln=True)
-                pdf.cell(0, 7, f'Hasta: {fecha_fin_periodo.strftime("%d/%m/%Y")}', ln=True)
-                pdf.cell(0, 7, f'Meses cargados: {meses_cargados}', ln=True)
-                pdf.cell(0, 7, f'Proxima recategorizacion: {fecha_recategorizacion.strftime("%B %Y")}', ln=True)
-                pdf.cell(0, 7, f'Meses restantes: {meses_restantes}', ln=True)
+                pdf.set_font('Helvetica', 'B', 14)
+                pdf.cell(0, 10, 'Periodo Analizado', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.set_font('Helvetica', '', 11)
+                pdf.cell(0, 7, f'Desde: {fecha_inicio_periodo.strftime("%d/%m/%Y")}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.cell(0, 7, f'Hasta: {fecha_fin_periodo.strftime("%d/%m/%Y")}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.cell(0, 7, f'Meses cargados: {meses_cargados}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.cell(0, 7, f'Proxima recategorizacion: {fecha_recategorizacion.strftime("%B %Y")}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.cell(0, 7, f'Meses restantes: {meses_restantes}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                 pdf.ln(5)
 
                 # Métricas principales
-                pdf.set_font('Arial', 'B', 14)
-                pdf.cell(0, 10, 'Metricas Principales', ln=True)
-                pdf.set_font('Arial', '', 11)
-                pdf.cell(0, 7, f'Limite de categoria {categoria_actual}: ${limite_categoria_actual:,.2f}', ln=True)
-                pdf.cell(0, 7, f'Facturacion total acumulada: ${facturacion_total_12_meses:,.2f}', ln=True)
-                pdf.cell(0, 7, f'Margen disponible: ${margen_disponible:,.2f}', ln=True)
+                pdf.set_font('Helvetica', 'B', 14)
+                pdf.cell(0, 10, 'Metricas Principales', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.set_font('Helvetica', '', 11)
+                pdf.cell(0, 7, f'Limite de categoria {categoria_actual}: ${limite_categoria_actual:,.2f}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.cell(0, 7, f'Facturacion total acumulada: ${facturacion_total_12_meses:,.2f}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.cell(0, 7, f'Margen disponible: ${margen_disponible:,.2f}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
                 if meses_restantes > 0:
-                    pdf.cell(0, 7, f'Promedio mensual disponible: ${promedio_mensual_disponible:,.2f}', ln=True)
+                    pdf.cell(0, 7, f'Promedio mensual disponible: ${promedio_mensual_disponible:,.2f}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
                 if exceso_facturacion > 0:
                     pdf.set_text_color(255, 0, 0)
-                    pdf.cell(0, 7, f'EXCESO de facturacion: ${exceso_facturacion:,.2f}', ln=True)
+                    pdf.cell(0, 7, f'EXCESO de facturacion: ${exceso_facturacion:,.2f}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                     if categoria_encuadre:
-                        pdf.cell(0, 7, f'Nueva categoria de encuadre: {categoria_encuadre}', ln=True)
+                        pdf.cell(0, 7, f'Nueva categoria de encuadre: {categoria_encuadre}', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
                     pdf.set_text_color(0, 0, 0)
 
                 pdf.ln(5)
 
                 # Facturación mensual
-                pdf.set_font('Arial', 'B', 14)
-                pdf.cell(0, 10, 'Facturacion Mensual', ln=True)
-                pdf.set_font('Arial', '', 10)
+                pdf.set_font('Helvetica', 'B', 14)
+                pdf.cell(0, 10, 'Facturacion Mensual', new_x=XPos.LMARGIN, new_y=YPos.NEXT)
+                pdf.set_font('Helvetica', '', 10)
 
                 for idx, row in facturacion_mensual_completa.iterrows():
-                    pdf.cell(0, 6, f"{row['Mes_Str']}: ${row['Imp. Total']:,.2f}", ln=True)
+                    pdf.cell(0, 6, f"{row['Mes_Str']}: ${row['Imp. Total']:,.2f}", new_x=XPos.LMARGIN, new_y=YPos.NEXT)
 
                 # Generar archivo (convertir bytearray a bytes para Streamlit)
                 pdf_output = bytes(pdf.output())
