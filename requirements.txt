@@ -69,3 +69,4 @@ tzdata==2025.2
 urllib3==2.3.0
 validators==0.34.0
 watchdog==6.0.0
+fpdf2==2.8.2

@@ -693,6 +693,91 @@ def main():
                 💡 Si las barras naranjas están por debajo o al nivel de la línea roja, estás dentro del margen seguro.
                 """)
 
+        # =============================================================================
+        # Sección 14: Exportar Reporte a PDF
+        # =============================================================================
+        st.markdown("---")
+        st.subheader("📄 Exportar Reporte")
+
+        col1, col2 = st.columns([3, 1])
+
+        with col1:
+            st.write("Descarga un reporte completo en PDF con todo el análisis de recategorización.")
+
+        with col2:
+            if st.button("📥 Descargar PDF", type="primary", use_container_width=True):
+                # Generar PDF
+                from fpdf import FPDF
+                from datetime import datetime as dt
+
+                # Crear PDF
+                pdf = FPDF()
+                pdf.add_page()
+                pdf.set_auto_page_break(auto=True, margin=15)
+
+                # Título
+                pdf.set_font('Arial', 'B', 20)
+                pdf.cell(0, 10, 'Reporte de Analisis de Monotributo', ln=True, align='C')
+                pdf.ln(5)
+
+                # Información del contribuyente
+                pdf.set_font('Arial', 'B', 14)
+                pdf.cell(0, 10, f'Contribuyente: {contribuyente}', ln=True)
+                pdf.set_font('Arial', '', 12)
+                pdf.cell(0, 8, f'Categoria Actual: {categoria_actual}', ln=True)
+                pdf.cell(0, 8, f'Fecha de generacion: {dt.now().strftime("%d/%m/%Y %H:%M")}', ln=True)
+                pdf.ln(5)
+
+                # Período analizado
+                pdf.set_font('Arial', 'B', 14)
+                pdf.cell(0, 10, 'Periodo Analizado', ln=True)
+                pdf.set_font('Arial', '', 11)
+                pdf.cell(0, 7, f'Desde: {fecha_inicio_periodo.strftime("%d/%m/%Y")}', ln=True)
+                pdf.cell(0, 7, f'Hasta: {fecha_fin_periodo.strftime("%d/%m/%Y")}', ln=True)
+                pdf.cell(0, 7, f'Meses cargados: {meses_cargados}', ln=True)
+                pdf.cell(0, 7, f'Proxima recategorizacion: {fecha_recategorizacion.strftime("%B %Y")}', ln=True)
+                pdf.cell(0, 7, f'Meses restantes: {meses_restantes}', ln=True)
+                pdf.ln(5)
+
+                # Métricas principales
+                pdf.set_font('Arial', 'B', 14)
+                pdf.cell(0, 10, 'Metricas Principales', ln=True)
+                pdf.set_font('Arial', '', 11)
+                pdf.cell(0, 7, f'Limite de categoria {categoria_actual}: ${limite_categoria_actual:,.2f}', ln=True)
+                pdf.cell(0, 7, f'Facturacion total acumulada: ${facturacion_total_12_meses:,.2f}', ln=True)
+                pdf.cell(0, 7, f'Margen disponible: ${margen_disponible:,.2f}', ln=True)
+
+                if meses_restantes > 0:
+                    pdf.cell(0, 7, f'Promedio mensual disponible: ${promedio_mensual_disponible:,.2f}', ln=True)
+
+                if exceso_facturacion > 0:
+                    pdf.set_text_color(255, 0, 0)
+                    pdf.cell(0, 7, f'EXCESO de facturacion: ${exceso_facturacion:,.2f}', ln=True)
+                    if categoria_encuadre:
+                        pdf.cell(0, 7, f'Nueva categoria de encuadre: {categoria_encuadre}', ln=True)
+                    pdf.set_text_color(0, 0, 0)
+
+                pdf.ln(5)
+
+                # Facturación mensual
+                pdf.set_font('Arial', 'B', 14)
+                pdf.cell(0, 10, 'Facturacion Mensual', ln=True)
+                pdf.set_font('Arial', '', 10)
+
+                for idx, row in facturacion_mensual_completa.iterrows():
+                    pdf.cell(0, 6, f"{row['Mes_Str']}: ${row['Imp. Total']:,.2f}", ln=True)
+
+                # Generar archivo
+                pdf_output = pdf.output(dest='S').encode('latin-1')
+
+                # Botón de descarga
+                st.download_button(
+                    label="💾 Guardar PDF",
+                    data=pdf_output,
+                    file_name=f"reporte_monotributo_{contribuyente.replace(' ', '_')}_{dt.now().strftime('%Y%m%d')}.pdf",
+                    mime="application/pdf"
+                )
+
     else:
         st.warning("Por favor, sube el archivo CSV con 12 meses de facturación para ver el análisis.")
 
