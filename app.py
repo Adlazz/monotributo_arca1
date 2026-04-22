@@ -767,8 +767,8 @@ def main():
                 for idx, row in facturacion_mensual_completa.iterrows():
                     pdf.cell(0, 6, f"{row['Mes_Str']}: ${row['Imp. Total']:,.2f}", ln=True)
 
-                # Generar archivo
-                pdf_output = pdf.output(dest='S').encode('latin-1')
+                # Generar archivo (fpdf2 ya devuelve bytes)
+                pdf_output = pdf.output()
 
                 # Botón de descarga
                 st.download_button(
