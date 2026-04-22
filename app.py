@@ -158,11 +158,11 @@ def main():
         contribuyente = st.text_input("Nombre del Contribuyente", "")
 
     with col2:
-        # Montos vigentes desde enero 2026 (ARCA/ex-AFIP)
+        # Montos vigentes desde abril 2026 (ARCA/ex-AFIP)
         categorias = {
-            'A': 10278540.00, 'B': 15050268.00, 'C': 21105620.00, 'D': 26201832.00,
-            'E': 30829337.00, 'F': 38624878.00, 'G': 46189028.00, 'H': 70082576.00,
-            'I': 78432313.00, 'J': 89823968.00, 'K': 108362895.00
+            'A': 10277988.13, 'B': 15058447.71, 'C': 21113696.52, 'D': 26212853.42,
+            'E': 30833964.37, 'F': 38642048.36, 'G': 46288359.82, 'H': 70185003.97,
+            'I': 78570820.99, 'J': 89946653.09, 'K': 108357084.05
         }
         categoria_actual = st.selectbox("Selecciona tu categoría actual", options=list(categorias.keys()))
 
