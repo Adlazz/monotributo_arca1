@@ -936,9 +936,9 @@ def main():
     <div style='text-align: center; color: #666; padding: 20px;'>
         <p>Hecho con ❤️ para la comunidad de monotributistas argentinos</p>
         <p style='font-size: 0.9em;'>
-            <a href='https://github.com/tu-usuario/monotributo_arca1' target='_blank'>GitHub</a> •
-            <a href='https://www.youtube.com/watch?v=XXXXX' target='_blank'>Tutorial en YouTube</a> •
-            <a href='mailto:tu-email@ejemplo.com'>Contacto</a>
+            <a href='https://github.com/Adlazz/monotributo_arca1' target='_blank'>GitHub</a> •
+            <a href='https://monotributoarca1.streamlit.app/' target='_blank'>App Online</a> •
+            <a href='mailto:adrianlazzarini@gmail.com'>Contacto</a>
         </p>
         <p style='font-size: 0.8em; margin-top: 10px;'>
             v1.0 • Última actualización: Abril 2026

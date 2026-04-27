@@ -6,6 +6,10 @@
 [![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
 
+## 🌐 Probala Online (sin instalar nada)
+
+👉 **[https://monotributoarca1.streamlit.app/](https://monotributoarca1.streamlit.app/)**
+
 ---
 
 ## 🎯 ¿Para qué sirve?
@@ -55,7 +59,7 @@ Si sos **monotributista en Argentina**, esta aplicación te ayuda a:
 
 1. **Clonar el repositorio**
 ```bash
-git clone https://github.com/tu-usuario/monotributo_arca1.git
+git clone https://github.com/Adlazz/monotributo_arca1.git
 cd monotributo_arca1
 ```
 
@@ -163,7 +167,7 @@ Si manejás múltiples clientes monotributistas y te interesa una **versión ent
 - Alertas automáticas por email
 - White-label (tu marca)
 
-**Contactame**: [tu-email@ejemplo.com](mailto:tu-email@ejemplo.com)
+**Contactame**: [adrianlazzarini@gmail.com](mailto:adrianlazzarini@gmail.com)
 
 ---
 
@@ -198,14 +202,13 @@ Sí, 100% gratis y open source.
 ### ¿Mis datos están seguros?
 Sí, todo se procesa **localmente** en tu navegador. No se envía ningún dato a servidores externos.
 
-### ¿Funciona sin internet?
-Una vez instalada, funciona completamente offline (excepto las visualizaciones que usan CDNs de gráficos).
+**Nota**: Si usás la versión online en Streamlit Cloud, los datos se procesan en su servidor pero no se almacenan. Para máxima privacidad, instalá la app localmente.
 
 ### ¿Puedo contribuir al proyecto?
 ¡Por supuesto! Pull requests son bienvenidos. Para cambios grandes, abrí primero un issue para discutir qué te gustaría cambiar.
 
 ### ¿Qué pasa si encuentro un bug?
-Abrí un [issue en GitHub](https://github.com/tu-usuario/monotributo_arca1/issues) con el detalle del problema.
+Abrí un [issue en GitHub](https://github.com/Adlazz/monotributo_arca1/issues) con el detalle del problema.
 
 ---
 
@@ -249,7 +252,7 @@ Si esta herramienta te ayudó, **dejá una estrella ⭐** en GitHub y **comparti
 
 ## 👨‍💻 Autor
 
-**Adrian** - [GitHub](https://github.com/tu-usuario) | [LinkedIn](https://linkedin.com/in/tu-perfil)
+**Adrian Lazzarini** - [GitHub](https://github.com/Adlazz) | [LinkedIn](https://www.linkedin.com/in/adrian-lazzarini)
 
 ---
 
