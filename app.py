@@ -54,12 +54,44 @@ def obtener_proxima_recategorizacion(fecha_actual):
 # Función de ETL mejorada para período móvil de recategorización
 def procesar_csv(uploaded_file):
     if uploaded_file is not None:
-        df = pd.read_csv(uploaded_file, sep=';', encoding='utf-8', decimal=',', thousands='.')
-        df.columns = [col.strip() for col in df.columns]
-        columnas_requeridas = [
-            'Fecha de Emisión', 'Tipo de Comprobante', 'Punto de Venta',
-            'Número Desde', 'Número Hasta', 'Nro. Doc. Receptor', 'Denominación Receptor', 'Imp. Total']
-        df = df[columnas_requeridas]
+        try:
+            df = pd.read_csv(uploaded_file, sep=';', encoding='utf-8', decimal=',', thousands='.')
+            df.columns = [col.strip() for col in df.columns]
+
+            columnas_requeridas = [
+                'Fecha de Emisión', 'Tipo de Comprobante', 'Punto de Venta',
+                'Número Desde', 'Número Hasta', 'Nro. Doc. Receptor', 'Denominación Receptor', 'Imp. Total']
+
+            # Validar que las columnas requeridas existan
+            columnas_faltantes = [col for col in columnas_requeridas if col not in df.columns]
+            if columnas_faltantes:
+                st.error(f"""
+                ❌ **Error en el archivo CSV**
+
+                Faltan las siguientes columnas: **{', '.join(columnas_faltantes)}**
+
+                **Asegurate de descargar el archivo desde:**
+                1. ARCA → Mis Comprobantes → Emitidos
+                2. Formato: **CSV** con punto y coma (;) como separador
+
+                Columnas esperadas: {', '.join(columnas_requeridas)}
+                """)
+                return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), None, None, None, 0
+
+            df = df[columnas_requeridas]
+        except Exception as e:
+            st.error(f"""
+            ❌ **Error al procesar el archivo CSV**
+
+            **Detalle del error:** {str(e)}
+
+            **Asegurate de que:**
+            - El archivo sea un CSV descargado desde ARCA
+            - El separador sea punto y coma (;)
+            - El formato sea UTF-8
+            - Contenga todas las columnas requeridas
+            """)
+            return pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), pd.DataFrame(), None, None, None, 0
         df['Nro. Doc. Receptor'] = df['Nro. Doc. Receptor'].astype(str)
         df['Fecha de Emisión'] = pd.to_datetime(df['Fecha de Emisión'], format='%Y-%m-%d').dt.date
         df['Imp. Total'] = df.apply(lambda row: -row['Imp. Total'] if row['Tipo de Comprobante'] == 13 else row['Imp. Total'], axis=1)
@@ -108,11 +140,33 @@ def calcular_kpis(facturacion_mensual):
     tasa_crecimiento_promedio = calcular_tasa_crecimiento_promedio_mensual(facturacion_mensual)
     return facturacion_total, facturacion_promedio_mensual, tasa_crecimiento_promedio
 
+def inject_ga():
+    """Inyecta Google Analytics en la página (configurar GA_MEASUREMENT_ID cuando esté disponible)"""
+    GA_MEASUREMENT_ID = "G-XXXXXXXXXX"  # Reemplazar con tu ID de Google Analytics
+
+    # Solo inyectar si hay un ID válido configurado
+    if GA_MEASUREMENT_ID and GA_MEASUREMENT_ID != "G-XXXXXXXXXX":
+        ga_script = f"""
+        <!-- Google tag (gtag.js) -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id={GA_MEASUREMENT_ID}"></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag(){{dataLayer.push(arguments);}}
+          gtag('js', new Date());
+          gtag('config', '{GA_MEASUREMENT_ID}');
+        </script>
+        """
+        st.components.v1.html(ga_script, height=0)
+
 def main():
     # =============================================================================
     # Sección 1: Configuración inicial
     # =============================================================================
     st.set_page_config(layout="wide", page_title="Análisis de Monotributo", page_icon=":bar_chart:")
+
+    # Inyectar Google Analytics
+    inject_ga()
+
     st.title('📊 Análisis de Monotributo')
     st.markdown("##")
 
@@ -779,7 +833,118 @@ def main():
                 )
 
     else:
-        st.warning("Por favor, sube el archivo CSV con 12 meses de facturación para ver el análisis.")
+        # Mostrar mensaje de bienvenida cuando no hay archivo cargado
+        st.info("""
+        ### 👋 ¡Bienvenido a la Calculadora de Monotributo ARCA!
+
+        **Para comenzar:**
+        1. 📥 Descargá tu archivo CSV desde ARCA (Mis Comprobantes → Emitidos)
+        2. 📤 Subilo usando el botón "Sube tu archivo CSV" arriba
+        3. 📊 Obtené tu análisis completo en segundos
+
+        **Tip:** Descargá el período de **12 meses** para obtener el análisis más preciso de tu próxima recategorización.
+        """)
+
+        # Ejemplo visual de cómo descargar el CSV
+        with st.expander("🎥 ¿No sabés cómo descargar el CSV desde ARCA?"):
+            st.markdown("""
+            ### Paso a paso para descargar tu CSV desde ARCA:
+
+            1. **Ingresá a ARCA** con tu Clave Fiscal:
+               👉 [https://auth.afip.gob.ar/contribuyente_/login.xhtml](https://auth.afip.gob.ar/contribuyente_/login.xhtml)
+
+            2. **Andá a "Comprobantes y Registraciones"** → **"Mis Comprobantes"**
+
+            3. **Seleccioná "Emitidos"**
+
+            4. **Configurá el período:**
+               - **Fecha desde**: Inicio del semestre (01/01 o 01/07)
+               - **Fecha hasta**: Fecha actual
+               - Ejemplo: Si estás en Marzo 2026 → desde 01/07/2025 hasta 31/03/2026
+
+            5. **Descargá en formato CSV**
+
+            6. **¡Subilo acá y listo!** 🚀
+
+            ---
+
+            **¿Necesitás ayuda?** Mirá el [tutorial completo en YouTube](#) (próximamente)
+            """)
+
+
+    # =============================================================================
+    # Sección 15: Formulario de Contacto (para contadores/empresas)
+    # =============================================================================
+    st.markdown("---")
+    st.markdown("---")
+
+    with st.expander("💼 ¿Sos contador o manejás múltiples clientes monotributistas?"):
+        st.markdown("""
+        ### Versión Enterprise para Estudios Contables
+
+        Si manejás **10+ clientes monotributistas** y te interesa una **versión profesional** con:
+
+        ✅ **Dashboard multi-cliente** (analizar todos tus clientes en una pantalla)
+        ✅ **Carga batch** (subir múltiples CSVs a la vez)
+        ✅ **Alertas automáticas** por email a tus clientes cuando se acerquen al límite
+        ✅ **White-label** (tu logo, tu marca, tu dominio)
+        ✅ **Reportes automatizados** mensuales
+        ✅ **Soporte prioritario**
+
+        **Dejá tu contacto y te enviamos una demo personalizada:**
+        """)
+
+        with st.form("contacto_form"):
+            col1, col2 = st.columns(2)
+
+            with col1:
+                nombre = st.text_input("Nombre completo *", placeholder="Ej: Juan Pérez")
+                email = st.text_input("Email *", placeholder="Ej: juan@estudiocontable.com")
+
+            with col2:
+                empresa = st.text_input("Estudio / Empresa", placeholder="Ej: Estudio Pérez & Asociados")
+                cantidad_clientes = st.number_input("Cantidad de clientes monotributistas", min_value=1, value=10, step=5)
+
+            mensaje = st.text_area(
+                "Mensaje (opcional)",
+                placeholder="Ej: Me interesa automatizar el análisis de mis 50 clientes monotributistas",
+                height=100
+            )
+
+            submitted = st.form_submit_button("📩 Solicitar Demo", type="primary", use_container_width=True)
+
+            if submitted:
+                if nombre and email:
+                    # Aquí podrías integrar con un servicio de email o Google Forms
+                    st.success(f"""
+                    ✅ **¡Gracias {nombre}!**
+
+                    Recibimos tu solicitud. Te contactaremos en las próximas 24-48 horas al email **{email}**.
+
+                    Mientras tanto, seguí usando la versión gratuita 😊
+                    """)
+
+                    # TODO: Integrar con servicio de email (SendGrid, Mailgun, etc.)
+                    # o guardar en Google Sheets / base de datos
+
+                else:
+                    st.error("⚠️ Por favor completá al menos el nombre y email.")
+
+    # Footer
+    st.markdown("---")
+    st.markdown("""
+    <div style='text-align: center; color: #666; padding: 20px;'>
+        <p>Hecho con ❤️ para la comunidad de monotributistas argentinos</p>
+        <p style='font-size: 0.9em;'>
+            <a href='https://github.com/tu-usuario/monotributo_arca1' target='_blank'>GitHub</a> •
+            <a href='https://www.youtube.com/watch?v=XXXXX' target='_blank'>Tutorial en YouTube</a> •
+            <a href='mailto:tu-email@ejemplo.com'>Contacto</a>
+        </p>
+        <p style='font-size: 0.8em; margin-top: 10px;'>
+            v1.0 • Última actualización: Abril 2026
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
